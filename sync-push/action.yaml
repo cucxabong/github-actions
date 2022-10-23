@@ -1,0 +1,40 @@
+name: 'Sync Push'
+description: 'Commit and push changes made to a local directory tracking a sync branch'
+inputs:
+  targetDir:
+    description: 'Directory to git push'
+    default: sync
+    required: true
+  syncBranch:
+    description: 'Branch to track in Directory'
+    default: sync
+    required: true
+  token:
+    description: >
+      Personal access token (PAT) used to clone sync branch.
+    default: ${{ github.token }}
+    required: true
+runs:
+  using: "composite"
+  steps:
+    - name: Push sync
+      shell: bash
+      run: |
+        echo "#################################################"
+        echo "Changing directory to '${{ inputs.targetDir }}' ..."
+        cd "${{ inputs.targetDir }}"
+        remote_repo="https://${GITHUB_ACTOR}:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+        git remote set-url origin ${remote_repo}
+
+        echo '=================== Publish to Sync branch ==================='
+        git add .
+        git status
+        git commit -m "Automated deployment to sync branch from ${GITHUB_SHA::8}" > /dev/null 2>&1 || true
+        git push origin ${PUBLISH_BRANCH} --force || git push --set-upstream origin ${PUBLISH_BRANCH}
+        rm -rf .git
+
+        cd ../
+        echo '=================== Done  ==================='
+      env:
+        GITHUB_TOKEN: ${{ inputs.token }}
+        PUBLISH_BRANCH: ${{ inputs.syncBranch }}

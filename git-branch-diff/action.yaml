@@ -1,0 +1,33 @@
+name: 'Git branch diff'
+description: 'Output git status, diff, diff-line-count and diff-byte-count for changed made in a local directory tracking a sync branch'
+inputs:
+  targetDir:
+    description: 'Directory to do git diff'
+    default: .
+    required: true
+outputs:
+  status:
+    description: "git status as json string"
+    value: ${{ steps.diff.outputs.status }}
+  diff:
+    description: "git diff as json string"
+    value: ${{ steps.diff.outputs.diff }}
+  diff-byte-count:
+    description: "git diff byte count"
+    value: ${{ steps.diff.outputs.diff-byte-count }}
+  diff-line-count:
+    description: "git diff line count"
+    value: ${{ steps.diff.outputs.diff-line-count }}
+runs:
+  using: "composite"
+  steps:
+    - id: diff
+      shell: bash
+      run: |
+        cd ${{ inputs.targetDir }}
+        git add .
+        echo "status=$(git status | jq -c --raw-input --slurp '.')" >> $GITHUB_OUTPUT
+        echo "diff=$(git diff --staged | jq --raw-input --slurp '.')" >> $GITHUB_OUTPUT
+        echo "diff-byte-count=$(git diff --staged --diff-filter="ACMR" --name-only | wc -c)" >> $GITHUB_OUTPUT
+        echo "diff-line-count=$(git diff --staged --diff-filter="ACMR" --name-only | wc -l)" >> $GITHUB_OUTPUT
+        git reset

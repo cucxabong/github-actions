@@ -1,0 +1,50 @@
+name: 'Sync init'
+description: 'Initialize and clear a directory to track a sync branch'
+inputs:
+  targetDir:
+    description: 'Directory to sync manifest into'
+    default: .
+    required: true
+  syncBranch:
+    description: 'Branch to track in Directory'
+    default: sync
+    required: true
+  token:
+    description: >
+      Personal access token (PAT) used to clone sync branch.
+    default: ${{ github.token }}
+    required: true
+  tempDir:
+    default: /tmp/sync
+    required: true
+runs:
+  using: "composite"
+  steps:
+    - name: Init branch
+      shell: bash
+      run: |
+        echo "#################################################"
+        echo "Changing directory to 'TEMP_DIR' ${TEMP_DIR} ..."
+        mkdir -p ${TEMP_DIR}
+        cd ${TEMP_DIR}
+        ls -lah
+
+        echo '=================== Initialising Sync branch ==================='
+        remote_repo="https://${GITHUB_ACTOR}:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+        git init
+        git remote add origin ${remote_repo}
+        git config user.name "${GITHUB_ACTOR}"
+        git config user.email "${GITHUB_ACTOR}@users.noreply.github.com"
+        git fetch
+        git checkout --track origin/${PUBLISH_BRANCH} || git checkout --orphan ${PUBLISH_BRANCH}
+        cd ../
+
+        # clear the ${TEMP_DIR}/${TARGET_DIR} while keeping the `.git` folder
+        mkdir -p deleteme
+        mv ${TEMP_DIR}/${TARGET_DIR}/* deleteme || echo "${TEMP_DIR}/${TARGET_DIR}/ is already empty"
+        rm -rf deleteme
+      env:
+        GITHUB_TOKEN: ${{ inputs.token }}
+        TARGET_DIR: ${{ inputs.targetDir }}
+        PUBLISH_BRANCH: ${{ inputs.syncBranch }}
+        TEMP_DIR: ${{ inputs.tempDir }}

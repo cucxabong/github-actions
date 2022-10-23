@@ -1,0 +1,53 @@
+name: Checking service changes
+description: Checking service configuration changes and return a matrix for service config options
+outputs:
+  matrix:
+    value: ${{ steps.matrix.outputs.matrix }}
+inputs:
+  configFile:
+    type: string
+    required: true
+    description: YAML file contain all configurations for this action
+  projectConfigKey:
+    type: string
+    required: true
+    default: ".projects"
+    description: YAML key to a map of project => additional configurations
+  projectfiltersKey:
+    type: string
+    required: true
+    default: ".filters"
+    description: YAML key contains a string (which is a valid yaml map) container project name and path pattern to check for changes
+  excludedProjectsKey:
+    type: string
+    required: true
+    default: ".excluded"
+    description: YAML key contains a list of excluded projects
+runs:
+  using: "composite"
+  steps:
+    - name: Run read-yaml action
+      id: yaml-data
+      uses: KJ002/read-yaml@main
+      with:
+        file: ${{ inputs.configFile }}
+        key-path: ${{ inputs.projectfiltersKey }}
+
+    - id: filter
+      uses: dorny/paths-filter@v2
+      with:
+        filters: ${{ steps.yaml-data.outputs.data }}
+
+    - name: matrix construction
+      shell: bash
+      run: |
+        projects_config=$(yq ${{ inputs.projectConfigKey }} -o json "${{ inputs.configFile }}")
+
+        # Removing excluded projects
+        excluded=$(yq '${{ inputs.excludedProjectsKey }} // []' "${{ inputs.configFile }}" -o json)
+        changes=$(jq --argjson excluded "$excluded" -rc '. - $excluded' <<<'${{ steps.filter.outputs.changes }}' )
+
+        # build matrix
+        matrix=$(jq --argjson changes $changes -c 'map(select( .name as $name | $changes | index($name)))' <<<$projects_config)
+        echo "matrix=$matrix" >> $GITHUB_OUTPUT
+      id: matrix

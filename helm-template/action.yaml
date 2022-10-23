@@ -1,0 +1,68 @@
+name: 'Helm Template'
+description: 'Render helm chart into target local directory'
+inputs:
+  outputDir:
+    description: 'Directory to write templates to'
+    default: .
+    required: true
+  releaseName:
+    description: 'Release name'
+    required: true
+  chart:
+    description: Helm chart name or URL
+    required: true
+  chartVersion:
+    description: Helm chart version
+    required: false
+    default: ""
+  valueFiles:
+    description: >
+      List of helm value files separated by commas
+    required: false
+  valuePairs:
+    description: >
+      List of helm "key=value" pairs separated by commas
+    required: false
+  releaseNamespace:
+    default: "default"
+    description: Release namespace
+    required: true
+  extraOpts:
+    default: ""
+    description: Extra command line options will be passed into 'helm template ...'
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Helm template
+      shell: bash
+      run: |
+        cmd="helm template -n ${HELM_RELEASE_NAMESPACE} ${HELM_RELEASE} ${HELM_CHART}"
+        if [[ -n $HELM_CHART_VERSION ]]
+        then
+          cmd+=" --version ${HELM_CHART_VERSION}"
+        fi
+        cmd+=" --output-dir ${OUTPUT_DIR}/${HELM_RELEASE}"
+        if [[ -n "${HELM_VALUE_FILES}" ]]; then
+            cmd+=" -f ${HELM_VALUE_FILES}"
+        fi
+
+        if [[ -n ${HELM_EXTRA_OPTIONS} ]]; then
+          cmd+=" ${HELM_EXTRA_OPTIONS}"
+        fi
+
+        if [[ -n "${HELM_VALUE_PAIRS}" ]]; then
+            cmd+=" --set ${HELM_VALUE_PAIRS}"
+        fi
+        echo ${cmd}
+        exec ${cmd}
+      env:
+        OUTPUT_DIR: ${{ inputs.outputDir }}
+        HELM_EXTRA_OPTIONS: ${{ inputs.extraOpts }}
+        HELM_RELEASE: ${{ inputs.releaseName }}
+        HELM_RELEASE_NAMESPACE: ${{ inputs.releaseNamespace }}
+        HELM_CHART: ${{ inputs.chart }}
+        HELM_CHART_VERSION: ${{ inputs.chartVersion }}
+        HELM_VALUE_FILES: ${{ inputs.valueFiles }}
+        HELM_VALUE_PAIRS: ${{ inputs.valuePairs }}
