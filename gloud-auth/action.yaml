@@ -1,0 +1,19 @@
+name: Google Cloud Authentication using Workload Identity Federation
+inputs:
+  gcp_workload_identity_provider:
+    type: string
+    required: true
+  gcp_service_account_email:
+    type: string
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - uses: google-github-actions/auth@v0
+      with:
+        workload_identity_provider: ${{ inputs.gcp_workload_identity_provider }}
+        service_account: ${{ inputs.gcp_service_account_email }}
+
+    - name: Set up Google Cloud SDK
+      uses: "google-github-actions/setup-gcloud@v0"
