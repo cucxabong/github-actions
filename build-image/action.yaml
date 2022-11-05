@@ -1,0 +1,49 @@
+name: Build & Push Image
+
+inputs:
+  tags:
+    type: string
+    default: ""
+  push:
+    type: boolean
+    default: false
+  context:
+    type: string
+    default: "."
+  buildArgs:
+    type: string
+    default: ""
+  dockerfile:
+    type: string
+    default: ""
+  useBuildx:
+    type: boolean
+    default: false
+
+runs:
+  using: composite
+  steps:
+    - name: configure container registry credentials
+      run: |
+        set -euxo pipefail
+        IFS=/ read -r url the_rest <<< "${{ inputs.tags }}"
+        case $url in
+          *.pkg.dev)
+            gcloud auth configure-docker ${url}
+            ;;
+        esac
+      shell: bash
+      if: inputs.push == 'true'
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+      if: inputs.useBuildx == 'true'
+
+    - name: Build and push
+      uses: docker/build-push-action@v3
+      with:
+        context: ${{ inputs.context }}
+        push: ${{ inputs.push }}
+        tags: ${{ inputs.tags }}
+        build-args: ${{ inputs.buildArgs }}
+        file: ${{ inputs.dockerfile }}
