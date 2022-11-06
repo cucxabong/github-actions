@@ -19,6 +19,15 @@ inputs:
   useBuildx:
     type: boolean
     default: false
+  useCache:
+    type: boolean
+    default: false
+  cacheTag:
+    type: string
+    default: ""
+  cacheMode:
+    type: string
+    default: "max"
 
 runs:
   using: composite
@@ -39,7 +48,7 @@ runs:
       uses: docker/setup-buildx-action@v2
       if: inputs.useBuildx == 'true'
 
-    - name: Build and push
+    - name: Build and push (without cache)
       uses: docker/build-push-action@v3
       with:
         context: ${{ inputs.context }}
@@ -47,3 +56,16 @@ runs:
         tags: ${{ inputs.tags }}
         build-args: ${{ inputs.buildArgs }}
         file: ${{ inputs.dockerfile }}
+      if: inputs.useCache == 'false'
+
+    - name: Build and push (with cache)
+      uses: docker/build-push-action@v3
+      with:
+        context: ${{ inputs.context }}
+        push: ${{ inputs.push }}
+        tags: ${{ inputs.tags }}
+        build-args: ${{ inputs.buildArgs }}
+        file: ${{ inputs.dockerfile }}
+        cache-from: type=registry,ref=${{ inputs.cacheTag }}
+        cache-to: type=registry,ref=${{ inputs.cacheTag }},mode=${{ inputs.cacheMode }}
+      if: inputs.useCache == 'true'
