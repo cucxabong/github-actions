@@ -18,7 +18,7 @@ inputs:
     default: ""
   useBuildx:
     type: boolean
-    default: false
+    default: true
   useCache:
     type: boolean
     default: false
