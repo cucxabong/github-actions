@@ -1,0 +1,90 @@
+name: Build/Push/Update Image Tag
+
+inputs:
+  tags:
+    type: string
+    default: ""
+  push:
+    type: boolean
+    default: false
+  context:
+    type: string
+    default: "."
+  buildArgs:
+    type: string
+    default: ""
+  dockerfile:
+    type: string
+    default: ""
+  useBuildx:
+    type: boolean
+    default: true
+  useCache:
+    type: boolean
+    default: false
+  cacheTag:
+    type: string
+    default: ""
+  cacheMode:
+    type: string
+    default: "max"
+  cfgRepoUrl:
+    type: string
+    required: true
+  cfgValuesFile:
+    type: string
+    required: true
+  imageTagKey:
+    type: string
+    required: true
+  accessToken:
+    type: string
+    required: false
+  commitAuthorEmail:
+    type: string
+    default: github-actions@github.com
+  codeRepository:
+    type: string
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - uses: cucxabong/github-actions/build-image@main
+      with:
+        tags: ${{ inputs.tags }}
+        push: ${{ inputs.push }}
+        context: ${{ inputs.context }}
+        useCache: ${{ inputs.useCache }}
+        cacheTag: ${{ inputs.cacheTag }}
+        cacheMode: ${{ inputs.cacheMode }}
+        buildArgs: ${{ inputs.buildArgs }}
+        dockerfile: ${{ inputs.dockerfile }}
+        useBuildx: ${{ inputs.useBuildx }}
+
+    - name: Checkout config repo
+      uses: actions/checkout@v3
+      with:
+        repository: ${{ inputs.cfgRepoUrl }}
+        token: ${{ inputs.accessToken }}
+        ref: main
+        path: config-repo
+
+    - name: update new tag
+      run: |
+        short_image=${IMAGE_TAG##*/}
+        image_name=$(cut -d ':' -f 1 <<<$short_image)
+        image_tag=$(cut -d ':' -f 2 <<<$short_image)
+        commit_id=$(cut -d '-' -f 2 <<<$image_tag)
+
+        export image_tag
+        yq -ei "${{ inputs.imageTagKey }} |= strenv(image_tag)" "${{ inputs.cfgValuesFile }}"
+        git config user.name github-actions
+        git config user.email ${{ inputs.commitAuthorEmail }}
+        git add .
+        git commit -m "Update ${image_name} image tag from ${{ inputs.codeRepository }}@${commit_id}"
+        git push origin main
+      shell: bash
+      env:
+        IMAGE_TAG: ${{ inputs.tags }}
+      working-directory: config-repo
