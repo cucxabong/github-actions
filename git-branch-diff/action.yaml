@@ -28,6 +28,6 @@ runs:
         git add .
         echo "status=$(git status | jq -c --raw-input --slurp '.')" >> $GITHUB_OUTPUT
         echo "diff=$(git diff --staged | jq --raw-input --slurp '.')" >> $GITHUB_OUTPUT
-        echo "diff-byte-count=$(git diff --staged --diff-filter="ACMR" --name-only | wc -c)" >> $GITHUB_OUTPUT
-        echo "diff-line-count=$(git diff --staged --diff-filter="ACMR" --name-only | wc -l)" >> $GITHUB_OUTPUT
+        echo "diff-byte-count=$(git diff --staged --diff-filter="ACMR" --name-only | wc -c | xargs)" >> $GITHUB_OUTPUT
+        echo "diff-line-count=$(git diff --staged --diff-filter="ACMR" --name-only | wc -l | xargs)" >> $GITHUB_OUTPUT
         git reset
