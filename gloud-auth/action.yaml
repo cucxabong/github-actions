@@ -16,4 +16,4 @@ runs:
         service_account: ${{ inputs.gcp_service_account_email }}
 
     - name: Set up Google Cloud SDK
-      uses: "google-github-actions/setup-gcloud@v0"
+      uses: "google-github-actions/setup-gcloud@v1"
