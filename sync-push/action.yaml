@@ -30,7 +30,7 @@ runs:
         git add .
         git status
         git commit -m "Automated deployment to sync branch from ${GITHUB_SHA::8}" > /dev/null 2>&1 || true
-        git push origin ${PUBLISH_BRANCH} --force || git push --set-upstream origin ${PUBLISH_BRANCH}
+        git push origin ${PUBLISH_BRANCH} || git push --set-upstream origin ${PUBLISH_BRANCH}
         rm -rf .git
 
         cd ../
